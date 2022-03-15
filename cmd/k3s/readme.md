@@ -13,7 +13,7 @@
 | 系统组件 | Linux软链接 | coreutils | b2sum, base32, base64, basename, basenc, cat, chcon, chgrp, chmod, chown, chroot, cksum, comm, cp, csplit, cut, date, dd, df, dir, dircolors, dirname, du, echo, env, expand, expr, factor, false, fmt, fold, groups, head, hostid, id, install, join, kill, link, ln, logname, ls, md5sum, mkdir, mkfifo, mknod, mktemp, mv, nice, nl, nohup, nproc, numfmt, od, paste, pathchk, pinky, pr, printenv, printf, ptx, pwd, readlink, realpath, rm, rmdir, runcon, seq, sha1sum, sha224sum, sha256sum, sha384sum, sha512sum, shred, shuf, sleep, sort, split, stat, stty, sum, sync, tac, tail, tee, test, timeout, touch, tr, true, truncate, tsort, tty, uname, unexpand, uniq, unlink, uptime, users, vdir, wc, who, whoami, yes |
 | 系统组件 | Linux软链接 | pigz | unpigz |
 | 其它 | 磁盘文件 | - | aux, blkid,  ethtool, find, fuse-overlayfs, ip, ipset, losetup, nsenter, slirp4netns, swanctl, charon, swanctl |
-| k3s组件 | Linux软链接 | k3s（非cmd/k3s编译得到的k3s二进制，疑似cmd/containerd 待验证） | crictl, ctr, k3s-agent, k3s-server, kubectl, k3s-certificate, k3s-etcd-snapshot, k3s-secrets-encrypt |
+| k3s组件 | Linux软链接 | k3s（非cmd/k3s编译得到的k3s二进制） | crictl, ctr, k3s-agent, k3s-server, kubectl, k3s-certificate, k3s-etcd-snapshot, k3s-secrets-encrypt |
 | k3s工具 | 磁盘文件 | - | check-config |
 | k3s网络插件 | Linux软链接 | cni | bridge, flannel, host-local, loopback, portmap | 
 | k3s-containerd运行时 | 磁盘文件 | - | conntrack, containerd, containerd-shim-runc-v2, runc |
