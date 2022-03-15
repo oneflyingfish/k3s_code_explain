@@ -6,4 +6,6 @@
 参考：https://www.cnblogs.com/FengZeng666/p/15689046.html
 
 
-`// +build mytag` 可通过 `go build -tags=mytag .` 启用
+`// +build mytag` 可通过 `go build -tags="mytag" .` 启用
+
+可通过`go build -tags="mytag1 mytag2 ..." .`添加多个tag
