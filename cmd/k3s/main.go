@@ -1,3 +1,4 @@
+// 本程序是为了将k3s所有的二进制文件整合为一个程序
 package main
 
 import (
@@ -10,13 +11,14 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rancher/k3s/pkg/cli/cmds"
-	"github.com/rancher/k3s/pkg/data" // 基于go-bindata生成的文件，静态嵌套
+	"github.com/rancher/k3s/pkg/data" // 基于go-bindata生成的文件，静态资源嵌套
 	"github.com/rancher/k3s/pkg/datadir"
 	"github.com/rancher/k3s/pkg/untar"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli" // 基于CLI的命令，flags取值优先级： 命令行 > 环境变量 > 配置文件 > 默认值，参考:https://blog.csdn.net/gbh18682030862/article/details/116988467 及 GitHub手册
 )
 
+// k3s [global options] command [command options] [arguments...]
 func main() {
 	if runCLIs() {
 		return
@@ -38,7 +40,9 @@ func main() {
 	}
 }
 
-// k3s {kubectl|ctr|crictl} 直接在当前目录执行，成功返回true
+// 使得重命名k3s为{kubectl|ctr|crictl}
+// `{kubectl|ctr|crictl} [args]` 可以直接使用，等效于 `k3s {kubectl|ctr|crictl} [args]`
+// 直接在当前目录(实际为 {~/.rancher/k3s|/var/lib/rancher/k3s}目录)执行(即忽略--data-dir字指定的程序路径)，成功返回true
 func runCLIs() bool {
 	for _, cmd := range []string{"kubectl", "ctr", "crictl"} {
 		if filepath.Base(os.Args[0]) == cmd {
@@ -51,21 +55,25 @@ func runCLIs() bool {
 	return false
 }
 
+// 直接依照urfave/cli执行原程序，不做改变
 func externalCLIAction(cmd string) func(cli *cli.Context) error {
 	return func(cli *cli.Context) error {
 		return externalCLI(cmd, cli.String("data-dir"), cli.Args())
 	}
 }
 
-func externalCLI(cli, dataDir string, args []string) error {
+func externalCLI(cmd, dataDir string, args []string) error {
 	dataDir, err := datadir.Resolve(dataDir)
 	if err != nil {
 		return err
 	}
-	return stageAndRun(dataDir, cli, append([]string{cli}, args...))
+	return stageAndRun(dataDir, cmd, append([]string{cmd}, args...))
 }
 
-// wrap和externalCLIAction的区别在于，args是来自于k3s命令（wrap），还是其子命令（externalCLIAction）
+// wrap和externalCLIAction的区别：
+// 例如执行命令为 ./k3s cmd B C D
+// wrap实际执行命令为 real_cmd cmd B C D , 例如：./k3s server args => /.../k3s-server server args [ps -ef查看命令显示为 ./k3s]
+// externalCLIAction 实际执行命令为 real_cmd B C D, 例如：./k3s kubectl args => /.../kubectl args [ps -ef查看命令显示为 cmd]
 func wrap(cmd string, args []string) func(ctx *cli.Context) error {
 	return func(ctx *cli.Context) error {
 		return stageAndRunCLI(ctx, cmd, args) // 定义函数闭包
@@ -82,7 +90,7 @@ func stageAndRunCLI(cli *cli.Context, cmd string, args []string) error {
 	return stageAndRun(dataDir, cmd, args)
 }
 
-// 将静态资源解压到 dataDir/data/$HASH（内含cmd命令和若干系统命令，配置临时环境变量），执行 shell `cmd args`
+// 将静态资源解压到 dataDir/data/$HASH（内含cmd命令和若干系统命令，配置临时环境变量），执行 shell `cmd args[1:]`,args[0]为cmd在ps -ef中显示的程序名，可随意定义
 func stageAndRun(dataDir string, cmd string, args []string) error {
 	dir, err := extract(dataDir) // 将静态嵌套资源 $HASH.tar.gz 解压到 dataDir/data/$HASH
 	if err != nil {
@@ -105,7 +113,7 @@ func stageAndRun(dataDir string, cmd string, args []string) error {
 	}
 
 	logrus.Debugf("Running %s %v", cmd, args)
-	return syscall.Exec(cmd, args, os.Environ()) // 执行命令
+	return syscall.Exec(cmd, args, os.Environ()) // 执行命令 cmd args[1:] , ps -ef中进程信息显示为args[0]
 }
 
 func getAssetAndDir(dataDir string) (string, string) {
