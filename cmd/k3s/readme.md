@@ -14,5 +14,8 @@
 | 系统组件 | Linux软链接 | pigz | unpigz |
 | 其它 | 磁盘文件 | - | aux, blkid,  ethtool, find, fuse-overlayfs, ip, ipset, losetup, nsenter, slirp4netns, swanctl, charon, swanctl |
 | k3s组件 | Linux软链接 | k3s（非cmd/k3s编译得到的k3s二进制，疑似cmd/containerd 待验证） | crictl, ctr, k3s-agent, k3s-server, kubectl, k3s-certificate, k3s-etcd-snapshot, k3s-secrets-encrypt |
+| k3s工具 | 磁盘文件 | - | check-config |
 | k3s网络插件 | Linux软链接 | cni | bridge, flannel, host-local, loopback, portmap | 
-| k3s-containerd运行时 | 磁盘文件 | - | conntrack, containerd, containerd-shim-runc-v2, check-config, runc |
+| k3s-containerd运行时 | 磁盘文件 | - | conntrack, containerd, containerd-shim-runc-v2, runc |
+
+调用关系补充：kubelet --> containerd --> containerd-shim-runc-v2 --> runc --> OS
