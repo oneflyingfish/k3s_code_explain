@@ -26,6 +26,7 @@ func main() {
 
 	app := cmds.NewApp()
 	app.Commands = []cli.Command{
+		// 内部字符串对应解压后磁盘二进制文件的名字，而不是cli子命令名称
 		cmds.NewServerCommand(wrap("k3s-server", os.Args)),
 		cmds.NewAgentCommand(wrap("k3s-agent", os.Args)),
 		cmds.NewKubectlCommand(externalCLIAction("kubectl")),

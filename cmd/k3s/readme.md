@@ -19,3 +19,11 @@
 | k3s-containerd运行时 | 磁盘文件 | - | conntrack, containerd, containerd-shim-runc-v2, runc |
 
 调用关系补充：kubelet --> containerd --> containerd-shim-runc-v2 --> runc --> OS
+
+功能:
+| 类型 | 形式 | 区别 | 实际执行 |
+| :-: | :- | :-: | :- | 
+| 重命名 | kubectl, ctr, crictl | 忽略 --data-dir 字指定的程序路径，ps -ef名称显示为kubectl/ctr/crict | bin/kubectl/ctr/crictl |
+| 子命令 | $exec server/agent | --data-dir 指定二进制解压路径，ps -ef名称显示为$exec | bin/k3s-server/k3s-agent |
+| 子命令 | $exec check-config/kubectl/ctr/crictl | --data-dir 指定二进制解压路径，ps -ef名称显示为check-config/kubectl/ctr/crictl | bin/check-config/kubectl/ctr/crictl |
+
