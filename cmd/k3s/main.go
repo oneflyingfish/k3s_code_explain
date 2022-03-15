@@ -63,6 +63,7 @@ func externalCLIAction(cmd string) func(cli *cli.Context) error {
 	}
 }
 
+// 程序解压到dataDir(""对应用户目录)，执行bin/cmd，ps -ef查询为cmd
 func externalCLI(cmd, dataDir string, args []string) error {
 	dataDir, err := datadir.Resolve(dataDir)
 	if err != nil {
@@ -81,6 +82,7 @@ func wrap(cmd string, args []string) func(ctx *cli.Context) error {
 	}
 }
 
+// 从--data-dir读取解压路径，执行bin/cmd，ps -ef查询为args[0]
 func stageAndRunCLI(cli *cli.Context, cmd string, args []string) error {
 	dataDir, err := datadir.Resolve(cli.String("data-dir")) // 读取flag: data-dir的值设置为工作目录。default: 普通用户为 ~/.rancher/k3s, root用户为 /var/lib/rancher/k3s
 	if err != nil {
