@@ -1,0 +1,1 @@
+编译此程序请先查阅 pkg/data/readme.md并生成data.go，否则会报错
