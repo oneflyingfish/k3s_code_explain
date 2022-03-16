@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	// 注意本文件中并未使用到reexec的多进程功能，不要被误导
+	// 注意本文件中并未使用到reexec的多进程功能，不要被误导。此包源代码是很少的，强烈建议通读
 	"github.com/docker/docker/pkg/reexec" // 借助docker实现的reexec package，类似C语言的fork功能，实现golang多进程编程（注意与线程、go routine区分），参考：https://jiajunhuang.com/articles/2018_03_08-golang_fork.md.html
 
 	// 非注册函数调用pkg
