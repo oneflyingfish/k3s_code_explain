@@ -25,6 +25,9 @@ import (
 	"github.com/urfave/cli"
 )
 
+// 直接调用官方ctr命令行工具
+// 默认sock文件地址改为 "/run/k3s/containerd/containerd.sock"
+// 默认namespace改为 "k8s.io"
 func Main() {
 	main()
 }
