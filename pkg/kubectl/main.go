@@ -15,18 +15,22 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd"
 )
 
+// 设置$KUBECONFIG，并直接执行k8s原版kubectl
 func Main() {
 	kubenv := os.Getenv("KUBECONFIG")
 	if kubenv == "" {
-		config, err := server.HomeKubeConfig(false, false)
+		config, err := server.HomeKubeConfig(false, false) // 路径有误时返回err
 		if _, serr := os.Stat(config); err == nil && serr == nil {
-			os.Setenv("KUBECONFIG", config)
+			os.Setenv("KUBECONFIG", config) // 配置文件存在时设置环境变量
 		}
+
+		// 判断弱权限(0600)时是否有文件read权限，无权限时仅给出warning，不阻止程序继续执行kubectl --write-kubeconfig-mode 支持强制执行
 		if err := checkReadConfigPermissions(config); err != nil {
 			logrus.Warn(err)
 		}
 	}
 
+	// 直接运行kubectl-k8s命令
 	main()
 }
 
