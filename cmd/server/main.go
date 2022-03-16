@@ -5,18 +5,20 @@ import (
 	"path/filepath"
 
 	"github.com/docker/docker/pkg/reexec" // 借助docker实现的reexec package，类似C语言的fork功能，实现golang多进程编程（注意与线程、go routine区分），参考：https://jiajunhuang.com/articles/2018_03_08-golang_fork.md.html
-	crictl2 "github.com/kubernetes-sigs/cri-tools/cmd/crictl"
 	"github.com/rancher/k3s/pkg/cli/agent"
 	"github.com/rancher/k3s/pkg/cli/cmds"
 	"github.com/rancher/k3s/pkg/cli/crictl"
 	"github.com/rancher/k3s/pkg/cli/ctr"
 	"github.com/rancher/k3s/pkg/cli/kubectl"
 	"github.com/rancher/k3s/pkg/cli/server"
-	"github.com/rancher/k3s/pkg/containerd"
-	ctr2 "github.com/rancher/k3s/pkg/ctr"
-	kubectl2 "github.com/rancher/k3s/pkg/kubectl"
+
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+
+	crictl2 "github.com/kubernetes-sigs/cri-tools/cmd/crictl" // 直接调用k8s提供的命令行工具crictl, CRI层面的cli交互工具
+	"github.com/rancher/k3s/pkg/containerd"                   // 直接运行官方containerd
+	ctr2 "github.com/rancher/k3s/pkg/ctr"                     // 自动补充部分环境变量默认值，内部直接调用containerd提供的命令行工具ctr，containerd层面的cli交互工具
+	kubectl2 "github.com/rancher/k3s/pkg/kubectl"             // 内部直接调用k8s-kubectl，默认k8s交互工具
 )
 
 func init() {
@@ -36,6 +38,8 @@ func main() {
 		// 根据 $EXEC 匹配 {containerd|kubectl|crictl|ctr}，执行上述reexec.Register注册的函数，例如  containerd => containerd.Main()
 		// 相当于执行 shell `containerd args``
 		return
+
+		// 此处意味着：如果当前二进制文件名为 containerd，kubectl，crictl，ctr 则直接执行现有的cli程序
 	}
 
 	// 非注册程序
