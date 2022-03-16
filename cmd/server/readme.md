@@ -4,6 +4,6 @@
 | :-: | :- | :- | :- | 
 | 重命名 | kubectl, crictl, ctr，containerd | 第三方已有Cli程序 | 可能略微添加自动的环境变量处理等 |
 | 子命令 | $exec {kubectl, crictl, ctr } | 第三方已有Cli程序 | 与重命名调用完全同样的代码 |
-| 子命令 | $exec {server, agent} |  |  |
+| 子命令 | $exec {server, agent} | k3s核心组件 | - |
 
 
