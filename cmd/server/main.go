@@ -4,7 +4,10 @@ import (
 	"os"
 	"path/filepath"
 
+	// 注意本文件中并未使用到reexec的多进程功能，不要被误导
 	"github.com/docker/docker/pkg/reexec" // 借助docker实现的reexec package，类似C语言的fork功能，实现golang多进程编程（注意与线程、go routine区分），参考：https://jiajunhuang.com/articles/2018_03_08-golang_fork.md.html
+
+	// 非注册函数调用pkg
 	"github.com/rancher/k3s/pkg/cli/agent"
 	"github.com/rancher/k3s/pkg/cli/cmds"
 	"github.com/rancher/k3s/pkg/cli/crictl"
@@ -15,6 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 
+	// 注册函数调用pkg
 	crictl2 "github.com/kubernetes-sigs/cri-tools/cmd/crictl" // 直接调用k8s提供的命令行工具crictl, CRI层面的cli交互工具
 	"github.com/rancher/k3s/pkg/containerd"                   // 直接运行官方containerd
 	ctr2 "github.com/rancher/k3s/pkg/ctr"                     // 自动补充部分环境变量默认值，内部直接调用containerd提供的命令行工具ctr，containerd层面的cli交互工具
@@ -49,6 +53,8 @@ func main() {
 	app.Commands = []cli.Command{
 		cmds.NewServerCommand(server.Run),
 		cmds.NewAgentCommand(agent.Run),
+
+		// 实际上调用的与注册函数相同：*.Run(ctx *cli.Context)内部实际上直接调用*.Main()
 		cmds.NewKubectlCommand(kubectl.Run),
 		cmds.NewCRICTL(crictl.Run),
 		cmds.NewCtrCommand(ctr.Run),
