@@ -35,7 +35,7 @@ k3s学习文档
 * 本项目是否可以用于生产 (Can this project be used in production directly) ？
     > 不行！代码内部存在一些安全漏洞，应该尽量选用[最新版](https://github.com/k3s-io/k3s)，在兼容性和安全性都有更高的保障。此项目仅为了学习目的。(为了避免项目滥用，此处用双语标出)
     >
-    > No! There are some security loopholes in the code, so the [latest version](https://github.com/k3s-io/k3s) should be selected as far as possible to ensure higher compatibility and security. This project is only for learning purposes. (In order to avoid project abuse, here is bilingual version)
+    > No! There are some security loopholes in the code, so the [latest version](https://github.com/k3s-io/k3s) should be selected as far as possible to ensure higher compatibility and security. This project is only for learning purposes. (In order to avoid project abuse, here is a bilingual version)
 
 * 我是谁？
     > 我不是k3s的开发人员，仅是一名学习者/使用者/云边方向研究者，只能尽最大能力保证信息的可靠性。如果存在内容错误，欢迎读者指出。
