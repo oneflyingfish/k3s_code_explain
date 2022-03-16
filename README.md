@@ -18,8 +18,6 @@ k3s学习文档
 > * Embedding k8s
 > * Situations where a PhD in k8s clusterology is infeasible
 
-
-
 ## 二、本项目内容说明
 代码注解内容包含两部分：
 
