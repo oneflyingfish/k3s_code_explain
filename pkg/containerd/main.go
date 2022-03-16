@@ -1,3 +1,4 @@
+//go:build ctrd
 // +build ctrd
 
 package containerd
@@ -10,6 +11,7 @@ import (
 	"github.com/containerd/containerd/pkg/seed"
 )
 
+// 直接运行官方containerd
 func Main() {
 	//klog.InitFlags(nil)
 	seed.WithTimeAndRand()
