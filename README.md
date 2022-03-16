@@ -1,11 +1,11 @@
-k3s学习文档
+[k3s](https://github.com/k3s-io/k3s)学习文档
 ===============================================
 
 **警告：项目代码存在16处已知安全漏洞，为k3s早期版本，不建议直接投入生产使用，仅作为学习研究需要**
 
 **Warning: There are 16 known security vulnerabilities in the project code, which is the early version of K3S. It is not recommended to be put into production directly, but only for study and research**
 
-## 一、什么是k3s?
+## 一、什么是[k3s](https://github.com/k3s-io/k3s)?
 引用[原版文档](https://github.com/k3s-io/k3s/blob/master/README.md)：
 > 即轻量级k8s，具有`可用于生产`、 `易于安装`、`内存消耗减半（相比k8s）`、`所有组件打包到一个小于100MB的二进制文件`等特性。
 > 
