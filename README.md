@@ -39,3 +39,12 @@
 
 * 我是谁？
     > 我不是k3s的开发人员，仅是一名学习者/使用者/云边方向研究者，只能尽最大能力保证信息的可靠性。如果存在内容错误，欢迎读者指出。
+
+## 四、知识补充
+
+* `containerd`,`containerd-shim`,`runC`, `ctr`, `cri-tools`, `docker`, `kubelet`是怎样的关系
+    ![关系图](pictures/tools-relationship.svg)
+    
+    注意：
+    * containerd-shim后来直接由containerd集成
+    * CRI即`container runtime interface`，是一种约定的容器通信协议规范。`docker-shim`和`container-shim`都是作为中间件，最初都是在`kubernetes`为了解耦`kubelet`与底层容器运行时。
