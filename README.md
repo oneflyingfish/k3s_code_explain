@@ -47,4 +47,4 @@
     
     注意：
     * containerd-shim后来直接由containerd集成
-    * CRI即`container runtime interface`，是一种约定的容器通信协议规范。`docker-shim`和`container-shim`都是作为中间件，最初都是在`kubernetes`为了解耦`kubelet`与底层容器运行时。
+    * CRI即`container runtime interface`，是一种约定的容器通信协议规范。`docker-shim`和`CRI-containerd`都是作为中间件，最初都是在`kubernetes`为了解耦`kubelet`与底层容器运行时。
