@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/reexec"
-	"github.com/natefinch/lumberjack" // 用于滚动写入日志（存在最大条目数量），同一个日志文件不支持两个日志记录器进行操作！
+	"github.com/natefinch/lumberjack" // 用于滚动写入日志
 	"github.com/urfave/cli"
 )
 
@@ -46,15 +46,17 @@ var (
 	}
 )
 
-// 初始化日志记录：使用哪个日志工具、记录模式等等
+// 当前进程用于记录日志，启动新的子进程执行功能（打印的数据都会由父进程接收），同时父进程wait()阻塞
 func InitLogging() error {
-	// $_K3S_LOG_REEXEC_=""意味着暂没有其它natefinch/lumberjack被初始化
+	// $_K3S_LOG_REEXEC_=""即当前为父进程，$_K3S_LOG_REEXEC_=true时为子进程
 	if LogConfig.LogFile != "" && os.Getenv("_K3S_LOG_REEXEC_") == "" {
 		// 使用natefinch/lumberjack进行滚动日志记录
+		// **当前为父进程**
 		return runWithLogging()
 	}
 
-	// natefinch/lumberjack无法启用时，或者未设置LogConfig.LogFile时，使用golang默认自带的进行日志记录
+	// ***当前为子进程***
+	// 检查服务器时间是否正确设置
 	if err := checkUnixTimestamp(); err != nil {
 		return err
 	}
@@ -94,14 +96,15 @@ func runWithLogging() error {
 	args := append([]string{"k3s"}, os.Args[1:]...)
 	cmd := reexec.Command(args...)
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "_K3S_LOG_REEXEC_=true") // 添加$_K3S_LOG_REEXEC_=true环境变量，标志已经有natefinch/lumberjack日志记录器在使用（不支持并发）
+	cmd.Env = append(cmd.Env, "_K3S_LOG_REEXEC_=true") // 添加$_K3S_LOG_REEXEC_=true环境变量，标志当前进程为父进程，用于日志记录
 	cmd.Stderr = l
 	cmd.Stdout = l
 	cmd.Stdin = os.Stdin
-	return cmd.Run() // 相当于新开进程执行 $exec k3s os.Args[1:]... , 并等候程序执行完毕
+	return cmd.Run() // 相当于新开进程执行 $exec k3s os.Args[1:]... , 此函数会阻塞（父进程阻塞）直到程序执行完毕，日志会全部输出到 变量l 指定的io.Writer
 }
 
 // 在--debug=true的情况下，会同时生成日志文件和终端打印信息，--debug=false时，仅输出日志到标准输出流
+// 标准输出流数据实际上被父进程接收，会被记录到日志文件
 func setupLogging() {
 	// 有疑问可查阅文件底部注释内容
 	flag.Set("v", strconv.Itoa(LogConfig.VLevel))
@@ -115,15 +118,15 @@ func setupLogging() {
 --add_dir_header
 		If true, adds the file directory to the header of the log messages
 --alsologtostderr
-		log to standard error as well as files (default true)
+		log to standard error as well as files
 --log_backtrace_at traceLocation
 		when logging hits line file:N, emit a stack trace (default :0)
 --log_dir string
 		If non-empty, write log files in this directory
 --log_file string
-		If non-empty, use this log file (default "litekube-logs/lite-apiserver/log-2022-3-8_2-56.log")
+		If non-empty, use this log file
 --log_file_max_size uint
-		Defines the maximum size a log file can grow to. Unit is megabytes. If the value is 0, the maximum file size is unlimited. (default 1800)
+		Defines the maximum size a log file can grow to. Unit is megabytes. If the value is 0, the maximum file size is unlimited.
 --logtostderr
 		log to standard error instead of files
 --one_output

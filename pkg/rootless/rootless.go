@@ -43,7 +43,7 @@ func Rootless(stateDir string) error {
 			logrus.Fatal(err)
 		}
 
-		// 内部会接收parent发送的套接字信息，判断message，如果状态还未就绪会再次重启（直接通过syscall.exec替换当前进程）
+		// 内部会接收parent发送的套接字信息，判断message，如果parent状态还未就绪会再次重启（直接通过syscall.exec替换当前进程）
 		// 状态就绪后，阻塞当前进程（实际上已经是子进程），启动孙子进程（/proc/self/exe os.args[1:]...），执行程序
 		if err := child.Child(*childOpt); err != nil {
 			logrus.Fatal("child died", err)
