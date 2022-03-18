@@ -29,9 +29,15 @@ import (
 )
 
 func Run(app *cli.Context) error {
+	// 以"k3s"为进程名，在子进程执行功能的进程中功能，cmds.InitLogging()将会阻塞父进程，直到调用子进程退出.
+	// LogConfig.LogFile != ""时将会启用
 	if err := cmds.InitLogging(); err != nil {
 		return err
 	}
+
+	// 子进程cmds.InitLogging()直接返回nil，顺利执行run函数，开始处理事务
+	// 父进程在子进程结束后，疑似会再次执行run????? 此处疑似存在逻辑bug
+	// 备注：子进程正常执行，且os.exit(0)时，cmds.InitLogging()返回值将为nil，由此触发run函数二次执行
 	return run(app, &cmds.ServerConfig)
 }
 
@@ -40,6 +46,7 @@ func run(app *cli.Context, cfg *cmds.Server) error {
 		err error
 	)
 
+	// 对于非root以用户，--rootless=false --disable-agent=false 会引发error
 	if !cfg.DisableAgent && os.Getuid() != 0 && !cfg.Rootless {
 		return fmt.Errorf("must run as root unless --disable-agent is specified")
 	}
@@ -50,15 +57,28 @@ func run(app *cli.Context, cfg *cmds.Server) error {
 			return err
 		}
 		cfg.DataDir = dataDir
+
+		// 内部会阻塞当前进程，通过子孙进程的方式，实现rootless
 		if err := rootless.Rootless(dataDir); err != nil {
 			return err
 		}
+
+		// 启动成功后，孙进程此处err==nil
+		// 此处 os.Getuid()==0  # fake root, 是通过rootless实现的
 	}
 
 	if cfg.Token == "" && cfg.ClusterSecret != "" {
 		cfg.Token = cfg.ClusterSecret
 	}
 
+	// 准备启动server的参数
+	// type Config struct {
+	// 	DisableAgent     bool
+	// 	DisableServiceLB bool
+	// 	ControlConfig    config.Control
+	// 	Rootless         bool
+	// }
+	// cfg为命令行输入flags填充
 	serverConfig := server.Config{}
 	serverConfig.DisableAgent = cfg.DisableAgent
 	serverConfig.ControlConfig.Token = cfg.Token
@@ -151,10 +171,17 @@ func run(app *cli.Context, cfg *cmds.Server) error {
 	}
 
 	noDeploys := make([]string, 0)
+
+	// 假设: ./exec --no-deploy=coredns,servicelb  --no-deploy=local-storage,metrics-server
+	// 那么: app.StringSlice("no-deploy")的返回值为 ["coredns,servicelb", "local-storage,metrics-server"]
+	// 最终: noDeploys=["coredns", "servicelb","local-storage", "metrics-server"]
 	for _, noDeploy := range app.StringSlice("no-deploy") {
-		for _, splitNoDeploy := range strings.Split(noDeploy, ",") {
-			noDeploys = append(noDeploys, splitNoDeploy)
-		}
+		// 原版代码，被替换
+		// for _, splitNoDeploy := range strings.Split(noDeploy, ",") {
+		// 	noDeploys = append(noDeploys, splitNoDeploy)
+		// }
+
+		noDeploys = append(noDeploys, strings.Split(noDeploy, ",")...) // 此处优化了原版的代码，不影响语义，可选项<coredns, servicelb, traefik, local-storage, metrics-server>
 	}
 
 	for _, noDeploy := range noDeploys {
@@ -177,6 +204,10 @@ func run(app *cli.Context, cfg *cmds.Server) error {
 	logrus.Info("k3s is up and running")
 	if notifySocket != "" {
 		os.Setenv("NOTIFY_SOCKET", notifySocket)
+
+		// 注意：$NOTIFY_SOCKET是systemd.SdNotify内置环境变量，与k3s设计无关
+		// true表示无条件unset $NOTIFY_SOCKET
+		// 向初始化当前进程的进程(k3s中描述为父进程)发送信息: "READY=1\n"，此字符串为操作系统约定字段，有一定格式
 		systemd.SdNotify(true, "READY=1\n")
 	}
 
@@ -185,6 +216,7 @@ func run(app *cli.Context, cfg *cmds.Server) error {
 		return nil
 	}
 
+	// 默认在server节点，也会启动一个agent。可以通过--disable-agent=true屏蔽
 	ip := serverConfig.ControlConfig.BindAddress
 	if ip == "" {
 		ip = "127.0.0.1"

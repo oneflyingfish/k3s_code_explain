@@ -7,3 +7,8 @@
 | 子命令 | $exec {server, agent} | k3s核心组件 | - |
 
 
+运行依赖(ubuntu为例):
+
+```shell
+sudo apt-get install uidmap slirp4netns
+```
