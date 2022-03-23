@@ -217,6 +217,7 @@ func apiServer(ctx context.Context, cfg *config.Control, runtime *config.Control
 	return startupConfig.Authenticator, startupConfig.Handler, nil
 }
 
+// 为未赋值的字段赋予默认值
 func defaults(config *config.Control) {
 	if config.ClusterIPRange == nil {
 		_, clusterIPNet, _ := net.ParseCIDR("10.42.0.0/16")
@@ -244,6 +245,7 @@ func defaults(config *config.Control) {
 		}
 	}
 
+	// pkg/cli/server.go中曾经调用chdir将工作目录切换到config.DataDir 或 默认目录 ($HOME/...)
 	if config.DataDir == "" {
 		config.DataDir = "./management-state"
 	}
@@ -252,6 +254,7 @@ func defaults(config *config.Control) {
 func prepare(ctx context.Context, config *config.Control, runtime *config.ControlRuntime) error {
 	var err error
 
+	// 为未赋值字段赋予默认值
 	defaults(config)
 
 	if err := os.MkdirAll(config.DataDir, 0700); err != nil {
@@ -263,9 +266,12 @@ func prepare(ctx context.Context, config *config.Control, runtime *config.Contro
 		return err
 	}
 
+	// 创建 DataDir/{tls, cred}目录
 	os.MkdirAll(path.Join(config.DataDir, "tls"), 0700)
 	os.MkdirAll(path.Join(config.DataDir, "cred"), 0700)
 
+	// 预先存储运行时证书秘钥等相关文件的path
+	// 此部分对应runtime.ControlRuntimeBootstrap
 	runtime.ClientCA = path.Join(config.DataDir, "tls", "client-ca.crt")
 	runtime.ClientCAKey = path.Join(config.DataDir, "tls", "client-ca.key")
 	runtime.ServerCA = path.Join(config.DataDir, "tls", "server-ca.crt")
@@ -273,9 +279,9 @@ func prepare(ctx context.Context, config *config.Control, runtime *config.Contro
 	runtime.RequestHeaderCA = path.Join(config.DataDir, "tls", "request-header-ca.crt")
 	runtime.RequestHeaderCAKey = path.Join(config.DataDir, "tls", "request-header-ca.key")
 	runtime.IPSECKey = path.Join(config.DataDir, "cred", "ipsec.psk")
-
 	runtime.ServiceKey = path.Join(config.DataDir, "tls", "service.key")
 	runtime.PasswdFile = path.Join(config.DataDir, "cred", "passwd")
+
 	runtime.NodePasswdFile = path.Join(config.DataDir, "cred", "node-passwd")
 
 	runtime.KubeConfigAdmin = path.Join(config.DataDir, "cred", "admin.kubeconfig")
@@ -308,16 +314,25 @@ func prepare(ctx context.Context, config *config.Control, runtime *config.Contro
 	runtime.ClientAuthProxyCert = path.Join(config.DataDir, "tls", "client-auth-proxy.crt")
 	runtime.ClientAuthProxyKey = path.Join(config.DataDir, "tls", "client-auth-proxy.key")
 
+	// 初始化cluster结构
 	cluster := cluster.New(config)
 
+	// 初始化c.storageClient，用于读写数据库
+	// 并判断是否有c.config.Token对应的条目。
+	// 如果已经存在，读取bootstrap信息，并在本地生成
+	// 如果不存在，则标记c.saveBootstrap=true
 	if err := cluster.Join(ctx); err != nil {
 		return err
 	}
 
+	// 生成证书及kubeconfig (apiserver/controller-manager/scheduler/admin/cloud-controller-manager)
+	// 生成证书 (kubeproxy/k3s-controller)
+	// 生成私钥 (kubelet)
 	if err := genCerts(config, runtime); err != nil {
 		return err
 	}
 
+	// 向runtime.ServiceKey随机生成的PEM私钥
 	if err := genServiceAccount(runtime); err != nil {
 		return err
 	}
@@ -379,6 +394,7 @@ func genEncryptedNetworkInfo(controlConfig *config.Control, runtime *config.Cont
 	return nil
 }
 
+//  p["server"]不存在，p["node"]存在则按照一定规则创建p["server"]
 func migratePassword(p *passwd.Passwd) error {
 	server, _ := p.Pass("server")
 	node, _ := p.Pass("node")
@@ -418,7 +434,7 @@ func getNodePass(config *config.Control, serverPass string) string {
 }
 
 func genUsers(config *config.Control, runtime *config.ControlRuntime) error {
-	passwd, err := passwd.Read(runtime.PasswdFile)
+	passwd, err := passwd.Read(runtime.PasswdFile) // runtime.PasswdFile文件不存在时返回空结构，err=nil。该文件为CSV文本文件
 	if err != nil {
 		return err
 	}
@@ -470,12 +486,17 @@ func getSigningCertFactory(regen bool, altNames *certutil.AltNames, extKeyUsage 
 	}
 }
 
+// 通过runtime.ClientCA, runtime.ClientCAKey颁发证书
+// 生成证书及kubeconfig (apiserver/controller-manager/scheduler/admin/cloud-controller-manager)
+// 生成证书 (kubeproxy/k3s-controller)
+// 生成私钥 (kubelet)
 func genClientCerts(config *config.Control, runtime *config.ControlRuntime) error {
 	regen, err := createSigningCertKey("k3s-client", runtime.ClientCA, runtime.ClientCAKey)
 	if err != nil {
 		return err
 	}
 
+	// 创建签名工厂，实质为以ClientCA, ClientCAKey作为CA的证书颁发工具
 	factory := getSigningCertFactory(regen, nil, []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}, runtime.ClientCA, runtime.ClientCAKey)
 
 	var certGen bool
@@ -550,7 +571,9 @@ func createServerSigningCertKey(config *config.Control, runtime *config.ControlR
 	TokenCAKey := path.Join(config.DataDir, "tls", "token-ca.key")
 
 	if exists(TokenCA, TokenCAKey) && !exists(runtime.ServerCA) && !exists(runtime.ServerCAKey) {
+		// 存在CA token/key，但是CA证书/秘钥不存在
 		logrus.Infof("Upgrading token-ca files to server-ca")
+		// 通过os.link创建 hard link(硬链接)，不了解可参考：https://blog.csdn.net/yasaken/article/details/7292186
 		if err := os.Link(TokenCA, runtime.ServerCA); err != nil {
 			return false, err
 		}
@@ -667,6 +690,7 @@ func createClientCertKey(regen bool, commonName string, organization []string, a
 	return true, certutil.WriteCert(certFile, append(certutil.EncodeCertPEM(cert), certutil.EncodeCertPEM(caCert[0])...))
 }
 
+// 查看一系列文件是否存在，都存在则返回true，反之返回false
 func exists(files ...string) bool {
 	for _, file := range files {
 		if _, err := os.Stat(file); err != nil {
@@ -676,6 +700,7 @@ func exists(files ...string) bool {
 	return true
 }
 
+// 向runtime.ServiceKey写入PEM私钥
 func genServiceAccount(runtime *config.ControlRuntime) error {
 	_, keyErr := os.Stat(runtime.ServiceKey)
 	if keyErr == nil {
@@ -690,7 +715,11 @@ func genServiceAccount(runtime *config.ControlRuntime) error {
 	return certutil.WriteKey(runtime.ServiceKey, certutil.EncodePrivateKeyPEM(key))
 }
 
+// 若证书/秘钥存在则直接返回false,nil
+// 不存在则创建自签名证书，返回true, nil
+// common-name: $prefix-ca@$time
 func createSigningCertKey(prefix, certFile, keyFile string) (bool, error) {
+	// 文件已经存在则直接返回
 	if exists(certFile, keyFile) {
 		return false, nil
 	}
@@ -739,7 +768,7 @@ func KubeConfig(dest, url, caCert, clientCert, clientKey string) error {
 	}
 	defer output.Close()
 
-	return kubeconfigTemplate.Execute(output, &data)
+	return kubeconfigTemplate.Execute(output, &data) // 基于golang的template生成在dest生成kubeconfig
 }
 
 func setupStorageBackend(argsMap map[string]string, cfg *config.Control) {

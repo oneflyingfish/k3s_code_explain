@@ -40,14 +40,17 @@ func resolveDataDir(dataDir string) (string, error) {
 }
 
 func StartServer(ctx context.Context, config *Config) error {
+	// mkdir -p config.ControlConfig.Datadir，并将工作目录切换至该文件夹
 	if err := setupDataDirAndChdir(&config.ControlConfig); err != nil {
 		return err
 	}
 
+	// 更新系统$NO_PROXY，额外添加 config.ClusterIPRange 和 config.ServiceIPRange
 	if err := setNoProxyEnv(&config.ControlConfig); err != nil {
 		return err
 	}
 
+	// 启动kube-apiserver、controller Manager、Scheduler、Cloud controller Manager、Tunnel
 	if err := control.Server(ctx, &config.ControlConfig); err != nil {
 		return errors.Wrap(err, "starting kubernetes")
 	}
@@ -283,6 +286,7 @@ func writeKubeConfig(certs string, config *Config) error {
 	return nil
 }
 
+// mkdir -p config.Datadir，并将工作目录切换至该文件夹
 func setupDataDirAndChdir(config *config.Control) error {
 	var (
 		err error
@@ -349,6 +353,7 @@ func writeToken(token, file, certs string) error {
 	return ioutil.WriteFile(file, []byte(token+"\n"), 0600)
 }
 
+// 更新系统$NO_PROXY，额外添加 config.ClusterIPRange 和 config.ServiceIPRange
 func setNoProxyEnv(config *config.Control) error {
 	envList := strings.Join([]string{
 		os.Getenv("NO_PROXY"),

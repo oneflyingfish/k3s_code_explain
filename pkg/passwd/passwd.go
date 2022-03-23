@@ -67,13 +67,18 @@ func (p *Passwd) Check(name, pass string) (matches bool, exists bool) {
 	return e.pass == pass, true
 }
 
+// 用role和passwd更新/创建 passwd[name]
+// passwd为空时，表示保持原值不变/随机生成(不存在原值时)
 func (p *Passwd) EnsureUser(name, role, passwd string) error {
 	tokenPrefix := "::" + name + ":"
 	idx := strings.Index(passwd, tokenPrefix)
+	// {...}括号为标记方便引入，非实际存在的字符
+	// 当 pass为 k10{A}::{name}:{B}，则更新pass为 {B}
 	if idx > 0 && strings.HasPrefix(passwd, "K10") {
 		passwd = passwd[idx+len(tokenPrefix):]
 	}
 
+	// name的pass已经存在
 	if e, ok := p.names[name]; ok {
 		if passwd != "" && e.pass != passwd {
 			p.changed = true
@@ -89,6 +94,8 @@ func (p *Passwd) EnsureUser(name, role, passwd string) error {
 		return nil
 	}
 
+	// name不存在
+	// 若pass为""则直接随机生成
 	if passwd == "" {
 		token, err := token.Random(16)
 		if err != nil {

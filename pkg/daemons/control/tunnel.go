@@ -27,7 +27,7 @@ func setupProxyDialer(tunnelServer *remotedialer.Server) {
 		if port != "" {
 			addr += ":" + port
 		}
-		nodeName, _ := kv.Split(address, ":")
+		nodeName, _ := kv.Split(address, ":") // nodename:addr:port
 		return tunnelServer.Dial(nodeName, 15*time.Second, "tcp", addr)
 	})
 }

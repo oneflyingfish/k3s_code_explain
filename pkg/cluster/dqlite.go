@@ -1,3 +1,4 @@
+//go:build dqlite
 // +build dqlite
 
 package cluster
@@ -85,12 +86,21 @@ func (c *Cluster) initClusterDB(ctx context.Context, l net.Listener, handler htt
 	return l, handler, err
 }
 
+// 检查是否支持dqlite
 func (c *Cluster) dqliteEnabled() bool {
 	stamp := filepath.Join(c.config.DataDir, "db", "state.dqlite")
 	if _, err := os.Stat(stamp); err == nil {
+		// 存在 Datadir/db/state.dqlite直接返回true
 		return true
 	}
 
+	// 通过c.config.Datastore.Endpoint(由--datastore-endpoint指定，""的时候driver=="sqlite")
+	// --datastore-endpoint举例:
+	// [sqlite] --datastore-endpoint=""
+	// [MySQL] --datastore-endpoint="mysql://username:password@tcp(hostname:3306)/database-name"
+	// [postgres] --datastore-endpoint="postgres://username:password@hostname:port/database-name"
+	// [ETCD] --datastore-endpoint="https://etcd-host-1:2379,https://etcd-host-2:2379,https://etcd-host-3:2379"
+	// ...
 	driver, _ := endpoint.ParseStorageEndpoint(c.config.Datastore.Endpoint)
 	if driver == endpoint.DQLiteBackend {
 		return true

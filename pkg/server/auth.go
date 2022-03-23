@@ -9,6 +9,7 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/request"
 )
 
+// mustRoles中存在一个值同时存在于roles中，则返回true
 func hasRole(mustRoles []string, roles []string) bool {
 	for _, check := range roles {
 		for _, role := range mustRoles {
@@ -39,6 +40,7 @@ func doAuth(roles []string, serverConfig *config.Control, next http.Handler, rw 
 		return
 	}
 
+	// 认证成功，调用next.ServeHTTP(rw, req)
 	ctx := request.WithUser(req.Context(), resp.User)
 	req = req.WithContext(ctx)
 	next.ServeHTTP(rw, req)

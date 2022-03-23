@@ -12,8 +12,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// 初始化c.storageClient，用于读写数据库
+// 并判断是否有c.config.Token对应的条目。
+// 如果已经存在，读取bootstrap信息，并在本地生成
+// 如果不存在，则标记c.saveBootstrap=true
 func (c *Cluster) Join(ctx context.Context) error {
-	runJoin, err := c.shouldJoin()
+	runJoin, err := c.shouldJoin() // 默认为true, nil
 	if err != nil {
 		return err
 	}
@@ -29,7 +33,7 @@ func (c *Cluster) Join(ctx context.Context) error {
 }
 
 func (c *Cluster) shouldJoin() (bool, error) {
-	dqlite := c.dqliteEnabled()
+	dqlite := c.dqliteEnabled() // 默认为false
 	if dqlite {
 		c.runtime.HTTPBootstrap = true
 		if c.config.JoinURL == "" {
@@ -37,7 +41,7 @@ func (c *Cluster) shouldJoin() (bool, error) {
 		}
 	}
 
-	stamp := c.joinStamp()
+	stamp := c.joinStamp() // Datadir/db/join-hash(c.config.Token)
 	if _, err := os.Stat(stamp); err == nil {
 		logrus.Info("Cluster bootstrap already complete")
 		return false, nil
@@ -90,10 +94,14 @@ func (c *Cluster) httpJoin() error {
 func (c *Cluster) join(ctx context.Context) error {
 	c.joining = true
 
-	if c.runtime.HTTPBootstrap {
+	if c.runtime.HTTPBootstrap { // 使用dqlite时此值为true
 		return c.httpJoin()
 	}
 
+	// 初始化c.storageClient，用于读写数据库
+	// 并判断是否有c.config.Token对应的条目。
+	// 如果已经存在，读取bootstrap信息，并在本地生成
+	// 如果不存在，则标记c.saveBootstrap=true
 	if err := c.storageJoin(ctx); err != nil {
 		return err
 	}
@@ -101,6 +109,7 @@ func (c *Cluster) join(ctx context.Context) error {
 	return nil
 }
 
+// return "Datadir/db/join-hash(c.config.Token)"
 func (c *Cluster) joinStamp() string {
 	return filepath.Join(c.config.DataDir, "db/joined-"+keyHash(c.config.Token))
 }
